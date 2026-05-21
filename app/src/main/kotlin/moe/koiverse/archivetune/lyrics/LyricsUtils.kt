@@ -12,11 +12,15 @@
 package moe.koiverse.archivetune.lyrics
 
 import android.icu.text.Transliterator
-import android.text.format.DateUtils
 import com.atilika.kuromoji.ipadic.Tokenizer
+import com.mocharealm.accompanist.lyrics.core.model.ISyncedLine
+import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
+import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
+import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
+import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import moe.koiverse.archivetune.betterlyrics.TTMLParser
 import java.lang.Character.UnicodeScript
 
 data class LyricsRomanizationPreferences(
@@ -30,11 +34,16 @@ data class LyricsRomanizationPreferences(
         get() = romanizeJapanese || romanizeKorean || romanizeChinese || romanizeHindi || romanizeOther
 }
 
+data class ParsedLyricsDocument(
+    val lyrics: SyncedLyrics,
+    val isSynced: Boolean,
+)
+
 @Suppress("RegExpRedundantEscape")
 object LyricsUtils {
-    val LINE_REGEX = "((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\] ?)+)(.+)".toRegex()
-    val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
     private val WHITESPACE_REGEX = "\\s+".toRegex()
+    private val autoParser = AutoParser()
+    private val ttmlParser = TTMLParser()
     private const val GENERIC_ROMANIZATION_TRANSFORM = "Any-Latin; Latin-ASCII"
     private val OTHER_ROMANIZATION_EXCLUDED_SCRIPTS = setOf(
         UnicodeScript.LATIN,
@@ -145,148 +154,120 @@ object LyricsUtils {
         val trimmed = lyrics.trim()
         if (!trimmed.startsWith("<")) return false
 
-        return trimmed.contains("<tt", ignoreCase = true) ||
-                trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
+        return ttmlParser.canParse(trimmed) || trimmed.startsWith("<tt", ignoreCase = true)
     }
 
-    fun parseTtml(lyrics: String, durationSeconds: Int? = null): List<LyricsEntry> {
-        val parsedLines = TTMLParser.parseTTML(lyrics)
-        if (parsedLines.isEmpty()) return emptyList()
-        val scale = 1.0
-
-        return parsedLines.map { line ->
-            val words =
-                line.words
-                    .filter { it.text.isNotEmpty() }
-                    .map { word ->
-                        WordTimestamp(
-                            text = word.text,
-                            startTime = word.startTime * scale,
-                            endTime = word.endTime * scale,
-                            isBackground = word.isBackground,
-                        )
-                    }.takeIf { it.isNotEmpty() }
-
-            LyricsEntry(
-                time = (line.startTime * scale * 1000.0).toLong(),
-                text = line.text,
-                words = words,
-                agent = line.agent,
-            )
-        }.sorted()
+    fun isSyncedLyrics(lyrics: String): Boolean {
+        val trimmed = lyrics.trim()
+        if (trimmed.isBlank()) return false
+        return isTtml(trimmed) || autoParser.canParse(trimmed)
     }
 
-    fun parseLyrics(lyrics: String): List<LyricsEntry> {
-        val lines = lyrics.lines()
-        val result = mutableListOf<LyricsEntry>()
+    fun parseSyncedLyricsDocument(rawLyrics: String): ParsedLyricsDocument {
+        val normalized = rawLyrics.replace("\uFEFF", "").trim()
+        if (normalized.isBlank()) {
+            return ParsedLyricsDocument(SyncedLyrics(emptyList()), false)
+        }
 
-        for (line in lines) {
-            val entries = parseLine(line)
-            if (entries != null) {
-                result.addAll(entries)
+        val parsed = runCatching {
+            autoParser.parse(normalized)
+        }.getOrElse {
+            SyncedLyrics(emptyList())
+        }
+
+        if (parsed.lines.isNotEmpty()) {
+            return ParsedLyricsDocument(parsed, true)
+        }
+
+        val plainLines = normalized
+            .lineSequence()
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .map { line ->
+                SyncedLine(
+                    content = line,
+                    translation = null,
+                    start = 0,
+                    end = Int.MAX_VALUE,
+                )
             }
+            .toList()
+
+        return ParsedLyricsDocument(SyncedLyrics(plainLines), false)
+    }
+
+    fun displayText(lyrics: String): String {
+        val raw = lyrics.trim()
+        if (raw.isBlank()) return raw
+
+        val displayText = parseSyncedLyricsDocument(raw)
+            .lyrics
+            .lines
+            .joinToString("\n") { lineText(it) }
+            .trim()
+
+        return displayText.ifBlank { raw }
+    }
+
+    fun lineText(line: ISyncedLine): String =
+        when (line) {
+            is SyncedLine -> line.content
+            is KaraokeLine -> line.syllables.joinToString(separator = "") { it.content }.trim()
+            else -> ""
         }
-        return result.sorted()
-    }
 
-    fun insertInstrumentalBreaks(entries: List<LyricsEntry>, songDurationMs: Long = 0L): List<LyricsEntry> {
-        if (entries.isEmpty()) return entries
-        val result = mutableListOf<LyricsEntry>()
-        insertIntroInstrumentalIfNeeded(entries, result)
-        result.addAll(entries)
-        insertOutroInstrumentalIfNeeded(entries, songDurationMs, result)
-        return result
-    }
-
-    private const val INSTRUMENTAL_GAP_THRESHOLD_MS = 5000L
-    private const val INSTRUMENTAL_INTRO_START_MS = 1000L
-    private const val INSTRUMENTAL_OUTRO_VOCAL_TAIL_MS = 2500L
-
-    private fun insertIntroInstrumentalIfNeeded(
-        entries: List<LyricsEntry>,
-        result: MutableList<LyricsEntry>,
-    ) {
-        val firstTimedVocalEntry = entries.firstOrNull { it.time >= 0L && it.text.isNotBlank() } ?: return
-        val introGapMs = firstTimedVocalEntry.time - INSTRUMENTAL_INTRO_START_MS
-        if (introGapMs < INSTRUMENTAL_GAP_THRESHOLD_MS) return
-
-        result.add(
-            LyricsEntry(
-                time = INSTRUMENTAL_INTRO_START_MS,
-                text = "",
-                isInstrumental = true,
-                durationMs = introGapMs,
-            )
-        )
-    }
-
-    private fun insertOutroInstrumentalIfNeeded(
-        entries: List<LyricsEntry>,
-        songDurationMs: Long,
-        result: MutableList<LyricsEntry>,
-    ) {
-        if (songDurationMs <= 0L) return
-        val lastVocalEntry = entries.lastOrNull { it.text.isNotBlank() } ?: return
-        val outroStartMs = lastVocalEntry.time + INSTRUMENTAL_OUTRO_VOCAL_TAIL_MS
-        val outroDurationMs = songDurationMs - outroStartMs
-        if (outroDurationMs < INSTRUMENTAL_GAP_THRESHOLD_MS) return
-
-        result.add(
-            LyricsEntry(
-                time = outroStartMs,
-                text = "",
-                isInstrumental = true,
-                durationMs = outroDurationMs,
-            )
-        )
-    }
-
-    private fun parseLine(line: String): List<LyricsEntry>? {
-        if (line.isEmpty()) {
-            return null
+    fun lineTextWithTranslation(line: ISyncedLine): String {
+        val mainText = lineText(line)
+        val translation = when (line) {
+            is SyncedLine -> line.translation
+            is KaraokeLine -> line.translation
+            else -> null
         }
-        val matchResult = LINE_REGEX.matchEntire(line.trim()) ?: return null
-        val times = matchResult.groupValues[1]
-        val text = matchResult.groupValues[3]
-        val timeMatchResults = TIME_REGEX.findAll(times)
 
-        return timeMatchResults
-            .map { timeMatchResult ->
-                val min = timeMatchResult.groupValues[1].toLong()
-                val sec = timeMatchResult.groupValues[2].toLong()
-                val milString = timeMatchResult.groupValues[3]
-                var mil = milString.toLong()
-                if (milString.length == 2) {
-                    mil *= 10
-                }
-                val time = min * DateUtils.MINUTE_IN_MILLIS + sec * DateUtils.SECOND_IN_MILLIS + mil
-                LyricsEntry(time, text)
-            }.toList()
+        return listOfNotNull(
+            mainText.takeIf(String::isNotBlank),
+            translation?.takeIf(String::isNotBlank),
+        ).joinToString("\n")
     }
 
-    fun findCurrentLineIndex(
-        lines: List<LyricsEntry>,
-        position: Long,
-        leadMs: Long = 300L,
-    ): Int {
-        if (lines.isEmpty()) return -1
+    suspend fun applyRomanization(
+        lyrics: SyncedLyrics,
+        preferences: LyricsRomanizationPreferences,
+    ): SyncedLyrics {
+        if (!preferences.isEnabled || lyrics.lines.isEmpty()) return lyrics
 
-        val target = position + leadMs
-        var low = 0
-        var high = lines.lastIndex
-
-        while (low <= high) {
-            val mid = (low + high).ushr(1)
-            val midTime = lines[mid].time
-
-            if (midTime < target) {
-                low = mid + 1
+        var changed = false
+        val romanizedLines = lyrics.lines.map { line ->
+            val text = lineText(line)
+            val romanized = romanizeLyricsLine(text, preferences)
+            if (romanized.isNullOrBlank()) {
+                line
             } else {
-                high = mid - 1
+                when (line) {
+                    is SyncedLine -> if (line.translation == null) {
+                        changed = true
+                        line.copy(translation = romanized)
+                    } else {
+                        line
+                    }
+                    is KaraokeLine.MainKaraokeLine -> if (line.phonetic == null) {
+                        changed = true
+                        line.copy(phonetic = romanized)
+                    } else {
+                        line
+                    }
+                    is KaraokeLine.AccompanimentKaraokeLine -> if (line.phonetic == null) {
+                        changed = true
+                        line.copy(phonetic = romanized)
+                    } else {
+                        line
+                    }
+                    else -> line
+                }
             }
         }
 
-        return high.coerceIn(0, lines.lastIndex)
+        return if (changed) lyrics.copy(lines = romanizedLines) else lyrics
     }
 
     /**

@@ -236,6 +236,8 @@ dependencies {
 
     implementation(libs.hilt)
     implementation(libs.re2j)
+    implementation(libs.accompanist.lyrics.core)
+    implementation(libs.accompanist.lyrics.ui)
     ksp(libs.hilt.compiler)
 
     implementation(project(":innertube"))

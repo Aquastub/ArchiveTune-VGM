@@ -93,9 +93,9 @@ import moe.koiverse.archivetune.constants.AiCustomEndpointKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
+import moe.koiverse.archivetune.lyrics.LyricsUtils.displayText
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
-import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
-import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
+import moe.koiverse.archivetune.lyrics.LyricsUtils.isSyncedLyrics
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.ListDialog
@@ -342,13 +342,7 @@ fun LyricsMenu(
                     Column(modifier = Modifier.padding(16.dp)) {
                         val displayLyrics = remember(result.lyrics) {
                             val raw = result.lyrics.trim()
-                            runCatching {
-                                when {
-                                    isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
-                                    raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
-                                    else -> raw
-                                }
-                            }.getOrDefault(raw)
+                            runCatching { displayText(raw) }.getOrDefault(raw)
                         }
 
                         Text(
@@ -382,7 +376,7 @@ fun LyricsMenu(
                                     )
                                 }
 
-                                if (result.lyrics.startsWith("[") || isTtml(result.lyrics)) {
+                                if (isSyncedLyrics(result.lyrics)) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = MaterialTheme.colorScheme.primaryContainer,

@@ -11,8 +11,11 @@
 
 package moe.koiverse.archivetune.lyrics
 
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import kotlinx.coroutines.flow.MutableStateFlow
 
+@Immutable
 data class WordTimestamp(
     val text: String,
     val startTime: Double,
@@ -20,6 +23,7 @@ data class WordTimestamp(
     val isBackground: Boolean = false
 )
 
+@Stable
 data class LyricsEntry(
     val time: Long,
     val text: String,
