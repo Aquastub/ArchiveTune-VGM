@@ -314,6 +314,17 @@ private fun LyricsContent(
         isManualScrolling = false
     }
 
+    LaunchedEffect(isManualScrolling) {
+        if (!isManualScrolling && parsedDocument.isSynced) {
+            val activeIndex = renderedLyrics.lines.indexOfFirst {
+                currentPositionMs in it.start..it.end
+            }
+            if (activeIndex != -1) {
+                listState.animateScrollToItem(activeIndex)
+            }
+        }
+    }
+
     LaunchedEffect(showMaxSelectionToast) {
         if (!showMaxSelectionToast) {
             return@LaunchedEffect
@@ -379,7 +390,7 @@ private fun LyricsContent(
             phoneticTextStyle = phoneticTextStyle,
             textColor = textColor,
             blendMode = BlendMode.SrcOver,
-            useBlurEffect = lyricsLineBlur && parsedDocument.isSynced,
+            useBlurEffect = lyricsLineBlur && parsedDocument.isSynced && !isManualScrolling,
             showTranslation = true,
             showPhonetic = romanizationPreferences.isEnabled,
             offset = 56.dp,
@@ -477,7 +488,7 @@ private fun rememberLyricsTextStyle(
         lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
         fontWeight = fontWeight,
         fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-        textMotion = TextMotion.Animated,
+        textMotion = TextMotion.Static,
     )
 
 private fun resolveLyricsLineIndex(
