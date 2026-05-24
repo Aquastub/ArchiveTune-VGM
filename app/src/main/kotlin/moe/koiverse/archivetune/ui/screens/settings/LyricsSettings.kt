@@ -337,14 +337,6 @@ fun LyricsSettings(
 
         PreferenceGroup(title = stringResource(R.string.display)) {
             item {
-                PreferenceEntry(
-                    title = { Text(stringResource(R.string.lyrics_animation_style)) },
-                    icon = { Icon(painterResource(R.drawable.animation), null) },
-                    onClick = { navController.navigate("settings/appearance/lyrics_animations") }
-                )
-            }
-
-            item {
                 SwitchPreference(
                     title = { Text(stringResource(R.string.lyrics_click_change)) },
                     icon = { Icon(painterResource(R.drawable.lyrics), null) },
