@@ -393,8 +393,8 @@ private fun LyricsContent(
             useBlurEffect = lyricsLineBlur && parsedDocument.isSynced && !isManualScrolling,
             showTranslation = true,
             showPhonetic = romanizationPreferences.isEnabled,
-            offset = 56.dp,
-            keepAliveZone = 120.dp,
+            offset = 112.dp,
+            keepAliveZone = 8.dp,
             blurDelta = 3f,
         )
 
