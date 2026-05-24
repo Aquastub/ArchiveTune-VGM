@@ -13,11 +13,11 @@ package moe.koiverse.archivetune.lyrics
 
 import android.icu.text.Transliterator
 import com.atilika.kuromoji.ipadic.Tokenizer
-import com.mocharealm.accompanist.lyrics.core.model.Alignment
 import com.mocharealm.accompanist.lyrics.core.model.ISyncedLine
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
-import com.mocharealm.accompanist.lyrics.core.model.karaoke.Syllable
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeSyllable
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
 import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
@@ -184,7 +184,7 @@ object LyricsUtils {
                     if (line.words.isNotEmpty()) {
                         KaraokeLine.MainKaraokeLine(
                             syllables = line.words.map { word ->
-                                Syllable(
+                                KaraokeSyllable(
                                     content = word.text,
                                     start = (word.startTime * 1000).toInt(),
                                     end = (word.endTime * 1000).toInt(),
@@ -194,7 +194,7 @@ object LyricsUtils {
                             phonetic = null,
                             start = (line.startTime * 1000).toInt(),
                             end = (line.endTime * 1000).toInt(),
-                            alignment = Alignment.CENTER
+                            alignment = KaraokeAlignment.Unspecified
                         )
                     } else {
                         SyncedLine(
