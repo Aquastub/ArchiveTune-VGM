@@ -154,7 +154,8 @@ object LyricsUtils {
         val trimmed = lyrics.trim()
         if (!trimmed.startsWith("<")) return false
 
-        return ttmlParser.canParse(trimmed) || trimmed.startsWith("<tt", ignoreCase = true)
+        return trimmed.contains("<tt", ignoreCase = true) ||
+                trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
     }
 
     fun isSyncedLyrics(lyrics: String): Boolean {
@@ -187,11 +188,6 @@ object LyricsUtils {
                 }
                 return ParsedLyricsDocument(SyncedLyrics(betterLines), true)
             }
-
-            val fallbackLines = extractTextFromTtml(normalized)
-            if (fallbackLines.isNotEmpty()) {
-                return ParsedLyricsDocument(SyncedLyrics(fallbackLines), false)
-            }
         }
 
         val parsed = runCatching {
@@ -219,29 +215,6 @@ object LyricsUtils {
             .toList()
 
         return ParsedLyricsDocument(SyncedLyrics(plainLines), false)
-    }
-
-    private fun extractTextFromTtml(ttml: String): List<ISyncedLine> {
-        val pRegex = "<p[^>]*>(.*?)</p>".toRegex(RegexOption.DOT_MATCHES_ALL)
-        val tagRegex = "<[^>]*>".toRegex()
-        return pRegex.findAll(ttml).mapNotNull { match ->
-            val content = match.groupValues[1]
-                .replace(tagRegex, "")
-                .replace("&quot;", "\"")
-                .replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&apos;", "'")
-                .trim()
-            if (content.isNotBlank()) {
-                SyncedLine(
-                    content = content,
-                    translation = null,
-                    start = 0,
-                    end = Int.MAX_VALUE,
-                )
-            } else null
-        }.toList()
     }
 
     fun displayText(lyrics: String): String {
