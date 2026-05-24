@@ -179,12 +179,28 @@ object LyricsUtils {
             val betterTTMLParsed = runCatching { moe.koiverse.archivetune.betterlyrics.TTMLParser.parseTTML(normalized) }.getOrNull()
             if (!betterTTMLParsed.isNullOrEmpty()) {
                 val betterLines = betterTTMLParsed.map { line ->
-                    SyncedLine(
-                        content = line.text,
-                        translation = null,
-                        start = (line.startTime * 1000).toInt(),
-                        end = (line.endTime * 1000).toInt(),
-                    )
+                    if (line.words.isNotEmpty()) {
+                        KaraokeLine.MainKaraokeLine(
+                            syllables = line.words.map { word ->
+                                KaraokeLine.Syllable(
+                                    content = word.text,
+                                    start = (word.startTime * 1000).toInt(),
+                                    end = (word.endTime * 1000).toInt(),
+                                )
+                            },
+                            translation = null,
+                            phonetic = null,
+                            start = (line.startTime * 1000).toInt(),
+                            end = (line.endTime * 1000).toInt(),
+                        )
+                    } else {
+                        SyncedLine(
+                            content = line.text,
+                            translation = null,
+                            start = (line.startTime * 1000).toInt(),
+                            end = (line.endTime * 1000).toInt(),
+                        )
+                    }
                 }
                 return ParsedLyricsDocument(SyncedLyrics(betterLines), true)
             }
