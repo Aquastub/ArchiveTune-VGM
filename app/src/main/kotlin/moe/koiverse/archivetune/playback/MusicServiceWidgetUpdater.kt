@@ -10,7 +10,8 @@ package moe.koiverse.archivetune.playback
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.datastore.preferences.core.MutablePreferences
-import androidx.datastore.preferences.core.toMutablePreferences
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -91,7 +92,7 @@ internal class MusicServiceWidgetUpdater(
             val ids = GlanceAppWidgetManager(service).getGlanceIds(target.widgetClass)
             ids.forEach { id ->
                 updateAppWidgetState(service, PreferencesGlanceStateDefinition, id) { prefs ->
-                    prefs.toMutablePreferences().apply {
+                    prefs.toMutableWidgetPreferences().apply {
                         this[MusicWidgetKeys.PLAYBACK_POSITION] = progress
                     }
                 }
@@ -107,13 +108,38 @@ internal class MusicServiceWidgetUpdater(
         val ids = GlanceAppWidgetManager(service).getGlanceIds(target.widgetClass)
         ids.forEach { id ->
             updateAppWidgetState(service, PreferencesGlanceStateDefinition, id) { prefs ->
-                prefs.toMutablePreferences().apply {
+                prefs.toMutableWidgetPreferences().apply {
                     writeSnapshot(snapshot)
                 }
             }
             target.widget.update(service, id)
         }
     }
+
+    private fun Preferences.toMutableWidgetPreferences(): MutablePreferences =
+        mutablePreferencesOf().apply {
+            this@toMutableWidgetPreferences[MusicWidgetKeys.TRACK_TITLE]?.let {
+                this[MusicWidgetKeys.TRACK_TITLE] = it
+            }
+            this@toMutableWidgetPreferences[MusicWidgetKeys.TRACK_ARTIST]?.let {
+                this[MusicWidgetKeys.TRACK_ARTIST] = it
+            }
+            this@toMutableWidgetPreferences[MusicWidgetKeys.ART_PATH]?.let {
+                this[MusicWidgetKeys.ART_PATH] = it
+            }
+            this@toMutableWidgetPreferences[MusicWidgetKeys.IS_PLAYING]?.let {
+                this[MusicWidgetKeys.IS_PLAYING] = it
+            }
+            this@toMutableWidgetPreferences[MusicWidgetKeys.IS_AVAILABLE]?.let {
+                this[MusicWidgetKeys.IS_AVAILABLE] = it
+            }
+            this@toMutableWidgetPreferences[MusicWidgetKeys.DOMINANT_COLOR]?.let {
+                this[MusicWidgetKeys.DOMINANT_COLOR] = it
+            }
+            this@toMutableWidgetPreferences[MusicWidgetKeys.PLAYBACK_POSITION]?.let {
+                this[MusicWidgetKeys.PLAYBACK_POSITION] = it
+            }
+        }
 
     private fun MutablePreferences.writeSnapshot(snapshot: WidgetSnapshot) {
         this[MusicWidgetKeys.TRACK_TITLE] = snapshot.title
