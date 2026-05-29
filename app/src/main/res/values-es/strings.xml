@@ -845,4 +845,21 @@
     <string name="widget_pause">Pausar</string>
     <string name="widget_previous">Anterior</string>
     <string name="widget_tap_to_open">Toca para abrir ArchiveTune</string>
+    <string name="lyrics_word_sync">Sincronizar palabras</string>
+    <string name="haptics">Vibración</string>
+    <string name="haptics_desc">Activar la respuesta háptica en los elementos interactivos</string>
+    <string name="lyrics_mode">Modo «Letras»</string>
+    <string name="lyrics_mode_v2">V2 Legacy</string>
+    <string name="lyrics_mode_enhanced">Mejorado</string>
+    <string name="lyrics_animation_style_v2_only">Disponible únicamente en el modo de letras V2</string>
+    <string name="could_not_open_youtube_music">No se pudo abrir YouTube Music</string>
+    <string name="ip_rotation">Rotación de direcciones IP</string>
+    <string name="ip_rotation_desc">Cambia la dirección IP actual cuando surjan problemas de reproducción o con el contenido.</string>
+    <string name="ip_rotation_active_proxies">%d proxies activos</string>
+    <string name="ip_rotation_loading">Cargando la lista de proxies…</string>
+    <string name="ip_rotation_refreshing">Actualizando la IP...</string>
+    <string name="ip_rotation_refresh">Actualizar IP</string>
+    <string name="enable_unison_lyrics">Habilitar la letra de Unison</string>
+    <string name="low_data_mode_title">Ahorro de datos móviles</string>
+    <string name="low_data_mode_description">Reduce el consumo de datos móviles utilizando transmisiones de baja calidad y desactivando la caché de reproducción, el elemento «canvas» y la precarga de letras en segundo plano en redes con tarifa de datos limitada</string>
 </resources>
