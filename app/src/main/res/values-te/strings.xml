@@ -1,3 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home">ప్రధాన పుట</string>
+    <string name="songs">గానములు</string>
+    <string name="artists">సంగీతకారులు</string>
+    <string name="albums">సంగీత మాలికలు</string>
+    <string name="playlists">జాబితాలు</string>
+    <string name="history">గతంలో విన్నవి</string>
+    <string name="stats">శ్రవణ గణాంకాలు</string>
+    <string name="mood_and_genres">సంగీత శైలులు</string>
+    <string name="mood_and_genres_supporting">మనఃస్థితి, యుగం లేదా ఉత్సాహాన్ని బట్టి వినండి</string>
+    <string name="account">ఖాతా</string>
+    <string name="quick_picks">త్వరిత ఎంపికలు</string>
+    <string name="quick_picks_empty">వినండి, మీ ఎంపికలను మెరుగుపరచండి</string>
+    <string name="speed_dial_random">యాదృచ్ఛికంగా ఒక పాటను ప్రారంభించండి</string>
+    <string name="forgotten_favorites">ఒకప్పటి మీ ఇష్టగానములు</string>
+    <string name="your_youtube_playlists">మీ యూట్యూబ్ జాబితాలు</string>
+    <string name="keep_listening">వినడం కొనసాగించండి</string>
+    <plurals name="n_selected">
+        <item quantity="one">ఎంచుకోబడినది</item>
+        <item quantity="other">ఎంచుకోబడినవి</item>
+    </plurals>
+    <string name="similar_to">ఇదే శైలిలో</string>
+    <string name="new_release_albums">తాజా సంగీత మాలికలు</string>
+    <string name="select_playlist_to_sync">సమకాలీకరించడానికి పాటల జాబితాను ఎంచుకోండి</string>
+    <string name="today">ఈరోజు</string>
+    <string name="yesterday">నిన్న</string>
+    <string name="this_week">ఈ వారం</string>
+    <string name="last_week">గత వారం</string>
+    <string name="most_played_songs">అత్యధికంగా విన్న గానములు</string>
+    <string name="most_played_artists">అత్యధికంగా విన్న సంగీతకారులు</string>
+    <string name="most_played_albums">అత్యధికంగా విన్న సంగీత మాలికలు</string>
+    <string name="search">వెతుకు</string>
+    <string name="search_yt_music">యూట్యూబ్ మ్యూజిక్ లో వెతకండి</string>
+    <string name="search_library">మీ సంగీత సేకరణలో వెతకండి</string>
+    <string name="filter_library">సంగీత సేకరణ</string>
+    <string name="filter_all">ఆన్నీ</string>
+    <string name="filter_songs">గానములు</string>
+    <string name="filter_albums">సంగీత మాలికలు</string>
+    <string name="filter_artists">సంగీతకారులు</string>
+    <string name="filter_playlists">జాబితాలు</string>
+    <string name="library_song_empty">మీ సంగీత సేకరణలో పాటలు ఇక్కడ కనపడతాయి</string>
+    <string name="library_artist_empty">మీ సంగీత సేకరణలో సంగీతకారులు ఇక్కడ కనపడతారు</string>
 </resources>
