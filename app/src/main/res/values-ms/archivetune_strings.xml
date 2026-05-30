@@ -67,4 +67,11 @@
     <string name="hide_player_thumbnail">Sorok Muka Pemain</string>
     <string name="hide_player_thumbnail_desc">Tukar muka album dengan logo aplikasi pada pemain</string>
     <string name="show_tags_in_library">Tunjuk tanda dalam pustaka</string>
+    <string name="music_recognition_tap_to_listen">Tekan untuk dengar</string>
+    <string name="music_recognition_listening">Mendengar…</string>
+    <string name="music_recognition_processing">Memproses…</string>
+    <string name="music_recognition_listen_again">Dengar lagi</string>
+    <string name="music_recognition_no_match">Tiada padanan dijumpai</string>
+    <string name="music_recognition_signature_failed">Tidak dapat menjana tandatangan</string>
+    <string name="music_recognition_recognition_failed">Pengecaman gagal</string>
 </resources>
