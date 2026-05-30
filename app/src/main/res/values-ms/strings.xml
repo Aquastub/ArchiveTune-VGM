@@ -1,3 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    </resources>
+    <string name="home">Home</string>
+    <string name="songs">Lagu</string>
+    <string name="artists">Artis</string>
+    <string name="albums">Album</string>
+    <string name="playlists">Playlist</string>
+    <plurals name="n_selected">
+        <item quantity="other">Top bar</item>
+    </plurals>
+    <string name="history">Sejarah</string>
+    <string name="stats">Statistik</string>
+</resources>
