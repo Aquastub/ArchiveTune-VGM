@@ -1,3 +1,4 @@
+You may be wondering... "Where's the VGM support for this?" Well... the work hasn't started yet.
 <div align="center">
 
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" alt="ArchiveTune Logo" style="border-radius: 22%">
