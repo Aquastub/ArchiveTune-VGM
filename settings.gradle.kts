@@ -19,9 +19,23 @@ dependencyResolutionManagement {
 
     repositories {
         google()
-        mavenCentral()
-        maven { setUrl("https://central.sonatype.com/repository/maven-snapshots/") }
-        maven { setUrl("https://jitpack.io") }
+        mavenCentral {
+            mavenContent {
+                releasesOnly()
+            }
+        }
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "JitPack"
+                    setUrl("https://jitpack.io")
+                }
+            }
+            filter {
+                includeGroup("com.github.therealbush")
+                includeGroup("com.github.TeamNewPipe")
+            }
+        }
     }
 }
 
@@ -32,30 +46,33 @@ dependencyResolutionManagement {
 
 rootProject.name = "ArchiveTune"
 include(":app")
-include(":innertube")
-include(":kugou")
-include(":lrclib")
+include(":core")
+include(":lyrics:kugou")
+include(":lyrics:lrclib")
+include(":lyrics:simpmusic")
+include(":lyrics:paxsenix")
+include(":lyrics:betterlyrics")
+include(":lyrics:unison")
+include(":lyrics:youlyplus")
 include(":lastfm")
-include("simpmusic")
-include(":paxsenix")
-include(":betterlyrics")
-include(":unison")
 include(":canvas")
 include(":shazamkit")
 include(":spotifycore")
+include(":moriextractor")
+include(":morideobfuscator")
 
 // Use a local copy of NewPipe Extractor by uncommenting the lines below.
 // We assume, that ArchiveTune and NewPipe Extractor have the same parent directory.
 // If this is not the case, please change the path in includeBuild().
 //
-// For this to work you also need to change the implementation in innertube/build.gradle.kts
+// For this to work you also need to change the implementation in core/build.gradle.kts
 // to one which does not specify a version.
 // From:
 //      implementation(libs.newpipe.extractor)
 // To:
-//      implementation("com.github.teamnewpipe:NewPipeExtractor")
-//includeBuild("../NewPipeExtractor") {
+//      implementation("com.github.TeamNewPipe:NewPipeExtractor")
+// includeBuild("../NewPipeExtractor") {
 //    dependencySubstitution {
-//        substitute(module("com.github.teamnewpipe:NewPipeExtractor")).using(project(":extractor"))
+//        substitute(module("com.github.TeamNewPipe:NewPipeExtractor")).using(project(":extractor"))
 //    }
-//}
+// }

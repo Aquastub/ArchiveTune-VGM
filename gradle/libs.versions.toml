@@ -2,32 +2,32 @@
 agp = "9.2.1"
 annotation = "1.10.0"
 json = "20250517"
-kotlin = "2.3.21"
-compose = "1.12.0-alpha03"
-lifecycle = "2.10.0"
-material3 = "1.5.0-alpha20"
+kotlin = "2.4.0"
+kotlinMetadata = "2.4.0"
+compose = "1.12.0-beta02"
+lifecycle = "2.11.0"
+material3 = "1.5.0-alpha23"
 media3 = "1.10.1"
 room = "2.8.4"
-hilt = "2.59.2"
-ktor = "3.5.0"
-ksp = "2.3.9"
+hilt = "2.60.1"
+ktor = "3.5.1"
+ksp = "2.3.10"
 jsoup = "1.22.2"
 re2j = "1.8"
-coil = "3.4.0"
+coil = "3.5.0"
 guava = "33.6.0-jre"
 coroutinesGuava = "1.11.0"
 materialiconsextended = "1.7.8"
 concurrentFutures = "1.3.0"
 activity = "1.13.0"
 navigation = "2.9.8"
-hiltNavigation = "1.3.0"
+hiltNavigation = "1.4.0"
 datastore = "1.2.1"
 workManager = "2.11.2"
 composeReorderable = "3.1.0"
 squigglyslider = "1.0.0"
-shimmer = "1.4.0"
+shimmer = "1.5.0"
 palette = "1.0.0"
-cloudy = "0.5.0"
 apacheLang3 = "3.20.0"
 brotli = "0.1.2"
 desugaring = "2.1.5"
@@ -35,13 +35,16 @@ junit = "4.13.2"
 turbine = "1.2.1"
 timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
-extractor = "c46af33"
+extractor = "0.26.3"
+translator = "1.1.1"
 rhino = "1.9.1"
 markwon = "4.6.2"
-okhttp = "5.3.2"
+okhttp = "5.4.0"
 accompanist = "1.0.19"
-accompanist-core = "0.4.5"
+accompanist-core = "0.4.7"
 androidsvg = "1.4"
+aboutLibraries = "15.0.3"
+startIoAds = "5.3.2"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -80,11 +83,12 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 shimmer = { module = "com.valentinilk.shimmer:compose-shimmer", version.ref = "shimmer" }
 
 palette = { module = "androidx.palette:palette-ktx", version.ref = "palette" }
-compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 
 media3 = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 media3-okhttp = { module = "androidx.media3:media3-datasource-okhttp", version.ref = "media3" }
 media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+media3-cast = { module = "androidx.media3:media3-cast", version.ref = "media3" }
+mediarouter = { module = "androidx.mediarouter:mediarouter", version = "1.8.1" }
 
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
@@ -94,6 +98,7 @@ apache-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "apa
 
 hilt = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
+kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlinMetadata" }
 
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -113,6 +118,7 @@ re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 
 json = { module = "org.json:json", version.ref = "json" }
 okhttp_dnsoverhttps = { module = "com.squareup.okhttp3:okhttp-dnsoverhttps", version.ref = "okhttp" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 brotli = { module = "org.brotli:dec", version.ref = "brotli" }
 rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
@@ -124,9 +130,8 @@ turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-newpipe-extractor = { module = "net.newpipe:extractor", version = "c46af33-SNAPSHOT" }
-#newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
-#newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
+newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "extractor" }
+translator = { module = "com.github.therealbush:translator", version.ref = "translator" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
 
@@ -142,6 +147,8 @@ markwon-simple-ext = { module = "io.noties.markwon:simple-ext", version.ref = "m
 accompanist-lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", version.ref = "accompanist" }
 accompanist-lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version.ref = "accompanist-core" }
 androidsvg = { module = "com.caverock:androidsvg-aar", version.ref = "androidsvg" }
+aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutLibraries" }
+startio-ads = { module = "com.startapp:inapp-sdk", version.ref = "startIoAds" }
 
 
 [plugins]
@@ -153,3 +160,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+aboutlibraries-android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibraries" }

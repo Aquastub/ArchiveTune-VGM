@@ -43,7 +43,7 @@
         android:allowAudioPlaybackCapture="true"
         android:appCategory="audio"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:enableOnBackInvokedCallback="false"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -63,11 +63,9 @@
             android:theme="@style/Theme.ArchiveTune"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.MUSIC_PLAYER" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.APP_MUSIC" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -139,6 +137,11 @@
                 <data android:scheme="vnd.youtube.launch" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <!-- Share filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -171,17 +174,27 @@
         </activity>
 
         <activity
-            android:name=".discord.DiscordOAuthCallbackActivity"
+            android:name=".musicrecognition.MusicRecognitionTileActionActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/Theme.ArchiveTune.Transparent" />
+
+        <activity
+            android:name=".RestoreBackupFileActivity"
             android:exported="true"
-            android:noHistory="true"
-            android:theme="@style/Theme.ArchiveTune">
+            android:theme="@style/Theme.ArchiveTune"
+            android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="${discordRedirectScheme}" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
 
@@ -228,6 +241,17 @@
             android:exported="true"
             android:icon="@drawable/mic"
             android:label="@string/music_recognition">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".aod.AodModeTileService"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true"
+            android:icon="@drawable/bedtime"
+            android:label="@string/aod_mode">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
@@ -317,6 +341,17 @@
         android:resource="@xml/widget_playback_command_info" />
 </receiver>
 
+<receiver
+    android:name=".widget.ListeningInsightsWidgetReceiver"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_listening_insights_info" />
+</receiver>
+
 
         <meta-data
             android:name="com.google.android.gms.car.application"
@@ -333,6 +368,21 @@
             android:name=".ui.screens.settings.PoTokenExtractionActivity"
             android:exported="false"
             android:theme="@style/Theme.ArchiveTune" />
+
+        <activity
+            android:name=".discord.DiscordOAuthCallbackActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.ArchiveTune">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="${discordRedirectScheme}" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

@@ -94,6 +94,7 @@ output-metadata.json
 # Binary files and core dumps
 core
 core.*
+!/core/
 *.so
 *.bin
 /.trae
@@ -107,3 +108,10 @@ core.*
 # AI code review
 /.qodo/
 /.github/copilot-instructions.md
+/skills
+/.openclaw
+/AGENTS.md
+/SOUL.md
+/string_cleaner.py
+/.codexignore
+/android_resource_cleaner.py

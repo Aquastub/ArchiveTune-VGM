@@ -66,6 +66,8 @@
 ## Rules for NewPipeExtractor
 -keep class org.schabi.newpipe.extractor.services.youtube.protos.** { *; }
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
+-keep class org.schabi.newpipe.extractor.** { *; }
+-keepclassmembers class org.schabi.newpipe.extractor.** { *; }
 -keep class org.mozilla.javascript.** { *; }
 -keep class org.mozilla.javascript.engine.** { *; }
 -keep class org.mozilla.classfile.ClassFileWriter
@@ -75,6 +77,12 @@
 -dontwarn javax.script.**
 -keep class jdk.dynalink.** { *; }
 -dontwarn jdk.dynalink.**
+
+## Essential for reflection/deserialization
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
 
 ## Logging (does not affect Timber)
 -assumenosideeffects class android.util.Log {
@@ -98,18 +106,13 @@
 # Keep all classes within the kuromoji package
 -keep class com.atilika.kuromoji.** { *; }
 
-## Discord Social SDK
--keep class com.discord.socialsdk.** { *; }
--keep class moe.koiverse.archivetune.discord.DiscordSocialNativeBridge { *; }
--dontwarn com.discord.socialsdk.**
-
 ## Queue Persistence Rules
 # Keep queue-related classes to prevent serialization issues in release builds
--keep class moe.koiverse.archivetune.models.PersistQueue { *; }
--keep class moe.koiverse.archivetune.models.PersistPlayerState { *; }
--keep class moe.koiverse.archivetune.models.QueueData { *; }
--keep class moe.koiverse.archivetune.models.QueueType { *; }
--keep class moe.koiverse.archivetune.playback.queues.** { *; }
+-keep class moe.rukamori.archivetune.models.PersistQueue { *; }
+-keep class moe.rukamori.archivetune.models.PersistPlayerState { *; }
+-keep class moe.rukamori.archivetune.models.QueueData { *; }
+-keep class moe.rukamori.archivetune.models.QueueType { *; }
+-keep class moe.rukamori.archivetune.playback.queues.** { *; }
 
 # Keep serialization methods for queue persistence
 -keepclassmembers class * implements java.io.Serializable {
@@ -146,3 +149,11 @@
 # Keep GlanceAppWidget and its receiver
 -keep class * extends androidx.glance.appwidget.GlanceAppWidget { *; }
 -keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }
+
+# internal Ktor HTTP Client
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+-keep class moe.rukamori.archivetune.moriextractor.BackendExtractorResponse { *; }
+
+# engine HTTP Android/OkHttp Ktor
+-dontwarn kotlinx.coroutines.**
