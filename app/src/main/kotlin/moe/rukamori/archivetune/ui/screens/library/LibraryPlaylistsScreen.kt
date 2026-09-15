@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -449,6 +450,8 @@ fun LibraryPlaylistsScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            val createPlaylist = remember { { showCreatePlaylistDialog = true } }
+
             // Main Content
             if (isGridView) {
                 LazyVerticalGrid(
@@ -458,6 +461,20 @@ fun LibraryPlaylistsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    if (visiblePlaylists.isEmpty()) {
+                        item(
+                            span = { GridItemSpan(2) },
+                            key = "playlists_empty",
+                            contentType = "library_empty_state",
+                        ) {
+                            LibraryEmptyState(
+                                iconRes = R.drawable.playlist_add,
+                                actionLabelRes = R.string.create_playlist,
+                                onAction = createPlaylist,
+                            )
+                        }
+                    }
+
                     items(
                         items = visiblePlaylists,
                         key = { playlist -> playlist.id },
@@ -497,6 +514,16 @@ fun LibraryPlaylistsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    if (listPlaylists.isEmpty()) {
+                        item(key = "playlists_empty", contentType = "library_empty_state") {
+                            LibraryEmptyState(
+                                iconRes = R.drawable.playlist_add,
+                                actionLabelRes = R.string.create_playlist,
+                                onAction = createPlaylist,
+                            )
+                        }
+                    }
+
                     itemsIndexed(
                         items = listPlaylists,
                         key = { _, playlist -> playlist.id },
@@ -772,13 +799,17 @@ fun PlaylistListCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = "${playlist.songCount} ${stringResource(R.string.tracks_label)}",
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
 
                 // Tag pill
@@ -802,6 +833,9 @@ fun PlaylistListCard(
                         text = tagText,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = tagColor,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 

@@ -22,8 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -31,14 +29,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.LocalDatabase
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.R
@@ -53,20 +51,21 @@ import moe.rukamori.archivetune.ui.component.PreferenceGroup
 import moe.rukamori.archivetune.ui.component.SwitchPreference
 import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.utils.rememberPreference
+import moe.rukamori.archivetune.viewmodels.ResetListeningStatsState
+import moe.rukamori.archivetune.viewmodels.ResetListeningStatsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrivacySettings(navController: NavController) {
+fun PrivacySettings(
+    navController: NavController,
+    resetStatsViewModel: ResetListeningStatsViewModel = hiltViewModel(),
+) {
+    val resetStatsState by resetStatsViewModel.state.collectAsStateWithLifecycle()
+    val onRequestStatsReset = remember(resetStatsViewModel) { resetStatsViewModel::requestReset }
+    val onDismissStatsReset = remember(resetStatsViewModel) { resetStatsViewModel::dismissDialog }
+    val onConfirmStatsReset = remember(resetStatsViewModel) { resetStatsViewModel::confirmReset }
+
     val database = LocalDatabase.current
-    val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val showMessage: (String) -> Unit =
-        remember(coroutineScope, snackbarHostState) {
-            { message ->
-                coroutineScope.launch { snackbarHostState.showSnackbar(message) }
-                Unit
-            }
-        }
     val (pauseListenHistory, onPauseListenHistoryChange) =
         rememberPreference(
             key = PauseListenHistoryKey,
@@ -163,7 +162,6 @@ fun PrivacySettings(navController: NavController) {
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_behavior_title)) },
@@ -205,6 +203,14 @@ fun PrivacySettings(navController: NavController) {
                         title = { Text(stringResource(R.string.clear_listen_history)) },
                         icon = { Icon(painterResource(R.drawable.delete_history), null) },
                         onClick = { showClearListenHistoryDialog = true },
+                    )
+                }
+                item {
+                    ResetListeningStatsPreference(
+                        state = resetStatsState,
+                        onRequestReset = onRequestStatsReset,
+                        onDismiss = onDismissStatsReset,
+                        onConfirm = onConfirmStatsReset,
                     )
                 }
             }
@@ -249,8 +255,75 @@ fun PrivacySettings(navController: NavController) {
                     )
                 }
             }
-
-            SupportAdPrivacySettingsSection(onMessage = showMessage)
         }
+    }
+}
+
+@Composable
+private fun ResetListeningStatsPreference(
+    state: ResetListeningStatsState,
+    onRequestReset: () -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val isResetting = state == ResetListeningStatsState.Loading
+    val showConfirmation = (state as? ResetListeningStatsState.Success)?.showConfirmation == true
+    val description = when {
+        isResetting -> stringResource(R.string.reset_listening_stats_progress)
+        state is ResetListeningStatsState.Success && !state.showConfirmation ->
+            stringResource(R.string.reset_listening_stats_success)
+        else -> null
+    }
+
+    PreferenceEntry(
+        title = { Text(stringResource(R.string.reset_listening_stats)) },
+        description = description,
+        icon = { Icon(painterResource(R.drawable.delete_history), contentDescription = null) },
+        isEnabled = !isResetting,
+        onClick = onRequestReset,
+    )
+
+    if (showConfirmation || isResetting || state is ResetListeningStatsState.Error) {
+        DefaultDialog(
+            onDismiss = onDismiss,
+            title = { Text(stringResource(R.string.reset_listening_stats)) },
+            content = {
+                Text(
+                    text = stringResource(
+                        when {
+                            isResetting -> R.string.reset_listening_stats_progress
+                            state is ResetListeningStatsState.Error -> state.messageRes
+                            else -> R.string.reset_listening_stats_confirm
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            },
+            buttons = {
+                if (state is ResetListeningStatsState.Error) {
+                    TextButton(
+                        onClick = onDismiss,
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(android.R.string.ok))
+                    }
+                } else {
+                    TextButton(
+                        onClick = onDismiss,
+                        enabled = !isResetting,
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                    TextButton(
+                        onClick = onConfirm,
+                        enabled = !isResetting,
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(R.string.reset))
+                    }
+                }
+            },
+        )
     }
 }

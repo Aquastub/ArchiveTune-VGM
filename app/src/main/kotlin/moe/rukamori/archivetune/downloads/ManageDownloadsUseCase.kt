@@ -42,6 +42,7 @@ data class DownloadEntryUiModel(
     val speedBytesPerSecond: Long,
     val paused: Boolean,
     val failed: Boolean,
+    val children: List<DownloadEntryUiModel> = emptyList(),
 )
 
 @Immutable
@@ -116,6 +117,7 @@ class ManageDownloadsUseCase
                         downloads = snapshot.downloads,
                         speeds = speeds,
                         requireCompleted = true,
+                        songsById = songsById,
                     ).takeIf { it.isNotEmpty() }?.let {
                         add(DownloadSectionUiModel(DownloadMediaType.PLAYLIST, it))
                     }
@@ -126,6 +128,7 @@ class ManageDownloadsUseCase
                         downloads = snapshot.downloads,
                         speeds = speeds,
                         requireCompleted = true,
+                        songsById = songsById,
                     ).takeIf { it.isNotEmpty() }?.let {
                         add(DownloadSectionUiModel(DownloadMediaType.ALBUM, it))
                     }
@@ -148,6 +151,7 @@ class ManageDownloadsUseCase
                         downloads = snapshot.downloads,
                         speeds = speeds,
                         requireCompleted = false,
+                        songsById = songsById,
                     ).takeIf { it.isNotEmpty() }?.let {
                         add(DownloadSectionUiModel(DownloadMediaType.PLAYLIST, it))
                     }
@@ -158,6 +162,7 @@ class ManageDownloadsUseCase
                         downloads = snapshot.downloads,
                         speeds = speeds,
                         requireCompleted = false,
+                        songsById = songsById,
                     ).takeIf { it.isNotEmpty() }?.let {
                         add(DownloadSectionUiModel(DownloadMediaType.ALBUM, it))
                     }
@@ -184,11 +189,38 @@ class ManageDownloadsUseCase
             downloads: Map<String, Download>,
             speeds: Map<String, Long>,
             requireCompleted: Boolean,
+            songsById: Map<String, Song>,
         ): List<DownloadEntryUiModel> =
             snapshot.playlists
                 .mapNotNull { playlist ->
                     val songIds = groupSongIds[playlist.id].orEmpty().distinct()
                     if (!songIds.isCollectionMatch(relevantIds, downloads, requireCompleted)) return@mapNotNull null
+                    val completedSongIds = songIds.filter { it in relevantIds }
+                    val children = if (requireCompleted) {
+                        completedSongIds.mapNotNull { songId ->
+                            val song = songsById[songId]
+                            val download = downloads[songId] ?: return@mapNotNull null
+                            buildEntry(
+                                id = "song:$songId",
+                                title = song?.song?.title ?: download.requestTitle(),
+                                supportingText = song?.artists?.joinToString { it.name }?.ifBlank { null },
+                                thumbnailUrl = song?.song?.thumbnailUrl,
+                                destinationRoute = null,
+                                playbackMetadata = song?.toMediaMetadata() ?: MediaMetadata(
+                                    id = songId,
+                                    title = download.requestTitle(),
+                                    artists = emptyList(),
+                                    duration = -1,
+                                ),
+                                durationSeconds = song?.song?.duration?.takeIf { it > 0 },
+                                songIds = listOf(songId),
+                                downloads = downloads,
+                                speeds = speeds,
+                            )
+                        }
+                    } else {
+                        emptyList()
+                    }
                     buildEntry(
                         id = "playlist:${playlist.id}",
                         title = playlist.title,
@@ -199,9 +231,10 @@ class ManageDownloadsUseCase
                                 ?: "local_playlist/${playlist.id}",
                         playbackMetadata = null,
                         durationSeconds = null,
-                        songIds = songIds,
+                        songIds = if (requireCompleted) completedSongIds else songIds,
                         downloads = downloads,
                         speeds = speeds,
+                        children = children,
                     )
                 }.sortedByDescending { entry -> entry.songIds.maxOfOrNull { downloads[it]?.updateTimeMs ?: 0L } ?: 0L }
 
@@ -212,11 +245,38 @@ class ManageDownloadsUseCase
             downloads: Map<String, Download>,
             speeds: Map<String, Long>,
             requireCompleted: Boolean,
+            songsById: Map<String, Song>,
         ): List<DownloadEntryUiModel> =
             snapshot.albums
                 .mapNotNull { album ->
                     val songIds = groupSongIds[album.id].orEmpty().distinct()
                     if (!songIds.isCollectionMatch(relevantIds, downloads, requireCompleted)) return@mapNotNull null
+                    val completedSongIds = songIds.filter { it in relevantIds }
+                    val children = if (requireCompleted) {
+                        completedSongIds.mapNotNull { songId ->
+                            val song = songsById[songId]
+                            val download = downloads[songId] ?: return@mapNotNull null
+                            buildEntry(
+                                id = "song:$songId",
+                                title = song?.song?.title ?: download.requestTitle(),
+                                supportingText = song?.artists?.joinToString { it.name }?.ifBlank { null },
+                                thumbnailUrl = song?.song?.thumbnailUrl,
+                                destinationRoute = null,
+                                playbackMetadata = song?.toMediaMetadata() ?: MediaMetadata(
+                                    id = songId,
+                                    title = download.requestTitle(),
+                                    artists = emptyList(),
+                                    duration = -1,
+                                ),
+                                durationSeconds = song?.song?.duration?.takeIf { it > 0 },
+                                songIds = listOf(songId),
+                                downloads = downloads,
+                                speeds = speeds,
+                            )
+                        }
+                    } else {
+                        emptyList()
+                    }
                     buildEntry(
                         id = "album:${album.id}",
                         title = album.title,
@@ -225,9 +285,10 @@ class ManageDownloadsUseCase
                         destinationRoute = "album/${album.id}",
                         playbackMetadata = null,
                         durationSeconds = null,
-                        songIds = songIds,
+                        songIds = if (requireCompleted) completedSongIds else songIds,
                         downloads = downloads,
                         speeds = speeds,
+                        children = children,
                     )
                 }.sortedByDescending { entry -> entry.songIds.maxOfOrNull { downloads[it]?.updateTimeMs ?: 0L } ?: 0L }
 
@@ -273,6 +334,7 @@ class ManageDownloadsUseCase
             songIds: List<String>,
             downloads: Map<String, Download>,
             speeds: Map<String, Long>,
+            children: List<DownloadEntryUiModel> = emptyList(),
         ): DownloadEntryUiModel {
             val entries = songIds.mapNotNull(downloads::get)
             val activeEntries = entries.filter { it.isVisibleInProgress() }
@@ -310,6 +372,7 @@ class ManageDownloadsUseCase
                 speedBytesPerSecond = activeEntries.sumOf { speeds[it.request.id] ?: 0L },
                 paused = activeEntries.isNotEmpty() && activeEntries.all { it.state.isPausedState() },
                 failed = activeEntries.any { it.state == Download.STATE_FAILED },
+                children = children,
             )
         }
 
@@ -321,15 +384,23 @@ class ManageDownloadsUseCase
             return downloads.mapValues { (songId, download) ->
                 val previous = byteSamples[songId]
                 val currentBytes = download.bytesDownloaded.coerceAtLeast(0L)
-                val speed =
-                    if (download.state == Download.STATE_DOWNLOADING && previous != null) {
-                        val elapsedMs = (now - previous.timestampMs).coerceAtLeast(1L)
-                        val downloadedBytes = (currentBytes - previous.bytes).coerceAtLeast(0L)
-                        downloadedBytes * 1_000L / elapsedMs
+                if (download.state != Download.STATE_DOWNLOADING || previous == null || currentBytes < previous.bytes) {
+                    byteSamples[songId] = ByteSample(currentBytes, now, 0L)
+                    return@mapValues 0L
+                }
+
+                if (currentBytes == previous.bytes) {
+                    return@mapValues if (now - previous.timestampMs <= SPEED_SAMPLE_HOLD_MS) {
+                        previous.speedBytesPerSecond
                     } else {
                         0L
                     }
-                byteSamples[songId] = ByteSample(currentBytes, now)
+                }
+
+                val elapsedMs = (now - previous.timestampMs).coerceAtLeast(1L)
+                val downloadedBytes = currentBytes - previous.bytes
+                val speed = downloadedBytes * 1_000L / elapsedMs
+                byteSamples[songId] = ByteSample(currentBytes, now, speed)
                 speed
             }
         }
@@ -341,7 +412,7 @@ class ManageDownloadsUseCase
         ): Boolean {
             if (size < MIN_COLLECTION_SIZE || none(relevantIds::contains)) return false
             return if (requireCompleted) {
-                all { downloads[it]?.state == Download.STATE_COMPLETED }
+                any { downloads[it]?.state == Download.STATE_COMPLETED }
             } else {
                 all { downloads[it]?.state?.isTrackedState() == true }
             }
@@ -365,9 +436,11 @@ class ManageDownloadsUseCase
         private data class ByteSample(
             val bytes: Long,
             val timestampMs: Long,
+            val speedBytesPerSecond: Long,
         )
 
         private companion object {
             const val MIN_COLLECTION_SIZE = 2
+            const val SPEED_SAMPLE_HOLD_MS = 2_500L
         }
     }

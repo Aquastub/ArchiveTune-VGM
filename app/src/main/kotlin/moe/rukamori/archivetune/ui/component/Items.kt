@@ -124,7 +124,9 @@ import moe.rukamori.archivetune.extensions.toMediaItem
 import moe.rukamori.archivetune.innertube.YouTube
 import moe.rukamori.archivetune.innertube.models.AlbumItem
 import moe.rukamori.archivetune.innertube.models.ArtistItem
+import moe.rukamori.archivetune.innertube.models.EpisodeItem
 import moe.rukamori.archivetune.innertube.models.PlaylistItem
+import moe.rukamori.archivetune.innertube.models.PodcastItem
 import moe.rukamori.archivetune.innertube.models.SongItem
 import moe.rukamori.archivetune.innertube.models.YTItem
 import moe.rukamori.archivetune.models.MediaMetadata
@@ -344,16 +346,34 @@ fun GridItem(
 )
 
 @Composable
+private fun SongSourceIcon(isLocal: Boolean) {
+    val color = if (isLocal) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+    Icon(
+        painter = painterResource(if (isLocal) R.drawable.playlist_local else R.drawable.playlist_online),
+        contentDescription =
+            stringResource(
+                if (isLocal) R.string.playlist_source_local else R.string.playlist_source_online,
+            ),
+        modifier = Modifier.size(12.dp),
+        tint = color,
+    )
+}
+
+@Composable
 fun SongListItem(
     song: Song,
     modifier: Modifier = Modifier,
     albumIndex: Int? = null,
     viewCountText: String? = null,
+    showSourceIcon: Boolean = false,
     showLikedIcon: Boolean = true,
     showInLibraryIcon: Boolean = false,
     showDownloadIcon: Boolean = true,
     showSongIconPlaceholder: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {
+        if (showSourceIcon) {
+            SongSourceIcon(isLocal = song.song.isLocal)
+        }
         if (showLikedIcon && song.song.liked) {
             Icon.Favorite()
         }
@@ -1330,6 +1350,7 @@ fun YouTubeListItem(
     modifier: Modifier = Modifier,
     albumIndex: Int? = null,
     viewCountText: String? = null,
+    showSourceIcon: Boolean = false,
     isSelected: Boolean = false,
     isActive: Boolean = false,
     isPlaying: Boolean = false,
@@ -1338,6 +1359,9 @@ fun YouTubeListItem(
     showActiveContainer: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
     badges: @Composable RowScope.() -> Unit = {
+        if (showSourceIcon) {
+            SongSourceIcon(isLocal = false)
+        }
         val database = LocalDatabase.current
         val song by database.song(item.id).collectAsState(initial = null)
         val album by database.album(item.id).collectAsState(initial = null)
@@ -1384,6 +1408,10 @@ fun YouTubeListItem(
                     is PlaylistItem -> {
                         joinByBullet(item.author?.name, item.songCountText)
                     }
+
+                    is PodcastItem -> item.author?.name
+
+                    is EpisodeItem -> joinByBullet(item.podcast?.name, item.dateText, item.durationText)
                 },
             badges = badges,
             thumbnailContent = {
@@ -1478,6 +1506,8 @@ fun YouTubeGridItem(
                     is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
                     is ArtistItem -> null
                     is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
+                    is PodcastItem -> item.author?.name
+                    is EpisodeItem -> joinByBullet(item.podcast?.name, item.dateText, item.durationText)
                 }
             if (subtitle != null) {
                 Text(
@@ -1504,7 +1534,7 @@ fun YouTubeGridItem(
                 sourceAspectRatio = item.thumbnailSourceRatio,
             )
 
-            if (item is SongItem && !isActive) {
+            if ((item is SongItem || item is EpisodeItem) && !isActive) {
                 OverlayPlayButton(
                     visible = true,
                 )

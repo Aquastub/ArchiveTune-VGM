@@ -40,7 +40,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -84,6 +87,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -94,11 +98,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.google.common.collect.ImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.backup.ScheduledBackupFrequency
+import moe.rukamori.archivetune.constants.ImportSourcePriorityKey
 import moe.rukamori.archivetune.constants.ShowSpotifyPlaylistsKey
 import moe.rukamori.archivetune.db.entities.Song
 import moe.rukamori.archivetune.spotify.SpotifyAccountUiState
@@ -107,6 +113,7 @@ import moe.rukamori.archivetune.spotify.SpotifyAuth
 import moe.rukamori.archivetune.ui.component.DefaultDialog
 import moe.rukamori.archivetune.ui.component.EnumListPreference
 import moe.rukamori.archivetune.ui.component.IconButton
+import moe.rukamori.archivetune.ui.component.ListPreference
 import moe.rukamori.archivetune.ui.component.PreferenceEntry
 import moe.rukamori.archivetune.ui.component.PreferenceGroup
 import moe.rukamori.archivetune.ui.component.PreferenceGroupScope
@@ -118,6 +125,9 @@ import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.utils.resetAuthWebViewSession
 import moe.rukamori.archivetune.viewmodels.BackupCategory
 import moe.rukamori.archivetune.viewmodels.BackupRestoreViewModel
+import moe.rukamori.archivetune.viewmodels.ExportPlaylistEvent
+import moe.rukamori.archivetune.viewmodels.ExportPlaylistScreenState
+import moe.rukamori.archivetune.viewmodels.ExportPlaylistUiModel
 import moe.rukamori.archivetune.viewmodels.ScheduledBackupScreenState
 import moe.rukamori.archivetune.viewmodels.ScheduledBackupUiData
 import java.time.Instant
@@ -166,7 +176,9 @@ fun BackupAndRestore(
 
     val backupRestoreProgress by viewModel.backupRestoreProgress.collectAsStateWithLifecycle()
     val scheduledBackupState by viewModel.scheduledBackupState.collectAsStateWithLifecycle()
+    val exportPlaylistState by viewModel.exportPlaylistState.collectAsStateWithLifecycle()
     val spotifyState by spotifyAccountViewModel.uiState.collectAsStateWithLifecycle()
+    val (importLocalFirst, onImportLocalFirstChange) = rememberPreference(ImportSourcePriorityKey, false)
     val (showSpotifyPlaylists, onShowSpotifyPlaylistsChange) = rememberPreference(ShowSpotifyPlaylistsKey, false)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -234,6 +246,24 @@ fun BackupAndRestore(
                 }
             }
         }
+    val exportPlaylistLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+            viewModel.onExportPlaylistDestinationSelected(uri)
+        }
+
+    LaunchedEffect(viewModel, context, exportPlaylistLauncher) {
+        viewModel.exportPlaylistEvent.collect { event ->
+            when (event) {
+                is ExportPlaylistEvent.CreateDocument -> {
+                    exportPlaylistLauncher.launch(event.suggestedFileName)
+                }
+
+                is ExportPlaylistEvent.ShowMessage -> {
+                    snackbarHostState.showSnackbar(context.getString(event.messageRes))
+                }
+            }
+        }
+    }
 
     LaunchedEffect(spotifyState.isAuthenticated) {
         if (spotifyState.isAuthenticated) {
@@ -308,6 +338,25 @@ fun BackupAndRestore(
                 onOverwriteChanged = viewModel::onScheduledBackupOverwriteChanged,
             )
 
+            GoogleDriveBackupSection(
+                enabled = backupRestoreProgress == null && !showRestoreOptionsDialog && !showBackupOptionsDialog,
+                onRestoreReady = remember(viewModel, context) {
+                    { uri ->
+                        coroutineScope.launch {
+                            val result = viewModel.validateBackup(context, uri)
+                            if (result.isValid) {
+                                pendingRestoreCategories = result.availableCategories
+                                pendingRestoreUri = uri
+                                showRestoreOptionsDialog = true
+                            } else {
+                                restoreValidationErrorMessage = result.errorMessage ?: context.getString(R.string.restore_corrupted)
+                                showRestoreValidationError = true
+                            }
+                        }
+                    }
+                },
+            )
+
             PreferenceGroup(title = stringResource(R.string.internal_service)) {
                 item {
                     PreferenceEntry(
@@ -328,6 +377,35 @@ fun BackupAndRestore(
                 }
 
                 item {
+                    ListPreference(
+                        title = { Text(stringResource(R.string.import_priority_setting_title)) },
+                        description = stringResource(R.string.import_priority_setting_desc),
+                        icon = { Icon(painterResource(R.drawable.playlist_import), null) },
+                        selectedValue = importLocalFirst,
+                        values = listOf(true, false),
+                        valueText = { localFirst ->
+                            stringResource(
+                                if (localFirst) {
+                                    R.string.import_priority_local_first
+                                } else {
+                                    R.string.import_priority_youtube_only
+                                },
+                            )
+                        },
+                        valueDescription = { localFirst ->
+                            stringResource(
+                                if (localFirst) {
+                                    R.string.import_priority_local_first_desc
+                                } else {
+                                    R.string.import_priority_youtube_only_desc
+                                },
+                            )
+                        },
+                        onValueSelected = onImportLocalFirstChange,
+                    )
+                }
+
+                item {
                     PreferenceEntry(
                         title = { Text(stringResource(R.string.import_online)) },
                         description = stringResource(R.string.import_m3u_format),
@@ -342,6 +420,27 @@ fun BackupAndRestore(
                         description = stringResource(R.string.import_csv_format),
                         icon = { Icon(painterResource(R.drawable.playlist_add), null) },
                         onClick = { importPlaylistFromCsv.launch(CSV_MIME_TYPES) },
+                    )
+                }
+
+                item {
+                    val exportState = exportPlaylistState
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.export_playlist_csv)) },
+                        description =
+                            stringResource(
+                                when (exportState) {
+                                    ExportPlaylistScreenState.Loading -> R.string.export_playlist_loading
+                                    ExportPlaylistScreenState.Empty -> R.string.export_playlist_empty
+                                    is ExportPlaylistScreenState.Error -> exportState.messageRes
+                                    is ExportPlaylistScreenState.Success -> R.string.export_playlist_csv_description
+                                },
+                            ),
+                        icon = { Icon(painterResource(R.drawable.download), null) },
+                        onClick = viewModel::onExportPlaylistClick,
+                        isEnabled =
+                            exportState !is ExportPlaylistScreenState.Loading &&
+                                (exportState as? ExportPlaylistScreenState.Success)?.isExporting != true,
                     )
                 }
             }
@@ -427,6 +526,15 @@ fun BackupAndRestore(
         }
     }
 
+    val exportState = exportPlaylistState
+    if (exportState is ExportPlaylistScreenState.Success && exportState.isPickerVisible) {
+        ExportPlaylistPickerDialog(
+            playlists = exportState.playlists,
+            onPlaylistSelected = viewModel::onExportPlaylistSelected,
+            onDismiss = viewModel::onExportPlaylistPickerDismissed,
+        )
+    }
+
     if (showSpotifyLogin) {
         SpotifyLoginSheet(
             onDismiss = { showSpotifyLogin = false },
@@ -464,13 +572,126 @@ fun BackupAndRestore(
         }
     }
 
+    val isExportingPlaylist = (exportPlaylistState as? ExportPlaylistScreenState.Success)?.isExporting == true
     LoadingScreen(
-        isVisible = backupRestoreProgress != null || isProgressStarted,
+        isVisible = backupRestoreProgress != null || isProgressStarted || isExportingPlaylist,
         value = backupRestoreProgress?.percent ?: progressPercentage,
-        title = backupRestoreProgress?.title,
-        stepText = backupRestoreProgress?.step ?: progressStatus,
-        indeterminate = backupRestoreProgress?.indeterminate ?: false,
+        title =
+            backupRestoreProgress?.title
+                ?: if (isExportingPlaylist) stringResource(R.string.export_playlist_in_progress) else null,
+        stepText =
+            backupRestoreProgress?.step
+                ?: if (isExportingPlaylist) stringResource(R.string.export_playlist_writing) else progressStatus,
+        indeterminate = backupRestoreProgress?.indeterminate ?: isExportingPlaylist,
     )
+}
+
+@Composable
+private fun ExportPlaylistPickerDialog(
+    playlists: ImmutableList<ExportPlaylistUiModel>,
+    onPlaylistSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val dialogModifier =
+        remember {
+            Modifier
+                .widthIn(max = 560.dp)
+                .fillMaxWidth()
+        }
+    val listModifier =
+        remember {
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = 480.dp)
+        }
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        modifier = dialogModifier,
+        title = { Text(stringResource(R.string.export_playlist_picker_title)) },
+        constrainContentHeight = true,
+        buttons = {
+            TextButton(
+                onClick = onDismiss,
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    ) {
+        LazyColumn(
+            modifier = listModifier,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(
+                items = playlists,
+                key = ExportPlaylistUiModel::id,
+                contentType = { ExportPlaylistUiModel::class },
+            ) { playlist ->
+                ExportPlaylistItem(
+                    playlist = playlist,
+                    onSelected = onPlaylistSelected,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExportPlaylistItem(
+    playlist: ExportPlaylistUiModel,
+    onSelected: (String) -> Unit,
+) {
+    val onClick = remember(playlist.id, onSelected) { { onSelected(playlist.id) } }
+    val itemModifier = remember { Modifier.fillMaxWidth() }
+    val rowModifier =
+        remember {
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        }
+    val playlistIconModifier = remember { Modifier.size(24.dp) }
+    Surface(
+        onClick = onClick,
+        modifier = itemModifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Row(
+            modifier = rowModifier,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val textModifier =
+                remember {
+                    Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp)
+                }
+            Icon(
+                painter = painterResource(R.drawable.playlist_local),
+                contentDescription = null,
+                modifier = playlistIconModifier,
+            )
+            Column(modifier = textModifier) {
+                Text(
+                    text = playlist.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = pluralStringResource(R.plurals.n_song, playlist.songCount, playlist.songCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                painter = painterResource(R.drawable.download),
+                contentDescription = null,
+                modifier = playlistIconModifier,
+            )
+        }
+    }
 }
 
 @Composable
@@ -934,7 +1155,7 @@ private fun WebView.configureSpotifyLoginWebView() {
         setSupportZoom(true)
         builtInZoomControls = true
         displayZoomControls = false
-        mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         userAgentString = SpotifyLoginUserAgent
     }
 }
@@ -1182,18 +1403,21 @@ private fun BackupOptionsDialog(
                     BackupCategory.LIBRARY -> R.string.backup_category_library
                     BackupCategory.ACCOUNT -> R.string.backup_category_account
                     BackupCategory.SETTINGS -> R.string.backup_category_settings
+                    BackupCategory.DOWNLOADS -> R.string.backup_category_downloads
                 }
             val descRes =
                 when (category) {
                     BackupCategory.LIBRARY -> R.string.backup_category_library_desc
                     BackupCategory.ACCOUNT -> R.string.backup_category_account_desc
                     BackupCategory.SETTINGS -> R.string.backup_category_settings_desc
+                    BackupCategory.DOWNLOADS -> R.string.backup_category_downloads_desc
                 }
             val iconRes =
                 when (category) {
                     BackupCategory.LIBRARY -> R.drawable.library_music
                     BackupCategory.ACCOUNT -> R.drawable.account
                     BackupCategory.SETTINGS -> R.drawable.settings
+                    BackupCategory.DOWNLOADS -> R.drawable.download
                 }
             Surface(
                 modifier = Modifier.fillMaxWidth(),
