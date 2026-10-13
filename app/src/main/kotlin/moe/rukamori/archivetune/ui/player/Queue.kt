@@ -77,7 +77,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -634,7 +633,7 @@ fun Queue(
                     )
                 }
 
-                PlayerDesignStyle.V7, PlayerDesignStyle.V8 -> {
+                PlayerDesignStyle.V7 -> {
                     val audioDevice by playerConnection.service.activeAudioDevice.collectAsStateWithLifecycle()
 
                     val view = LocalView.current
@@ -648,6 +647,34 @@ fun Queue(
                     }
 
                     QueueCollapsedContentV7(
+                        textBackgroundColor = Color.White,
+                        onExpandQueue = openQueue,
+                        onShowLyrics = onShowLyrics,
+                        onDeviceClick = {
+                            SystemMediaControlResolver.openMediaOutputSwitcher(context)
+                        },
+                        onMusicTogetherClick = {
+                            playerBottomSheetState.collapseSoft()
+                            navController.navigate("settings/music_together")
+                        },
+                        device = audioDevice,
+                    )
+                }
+
+                PlayerDesignStyle.V8 -> {
+                    val audioDevice by playerConnection.service.activeAudioDevice.collectAsStateWithLifecycle()
+
+                    val view = LocalView.current
+                    DisposableEffect(view) {
+                        val listener =
+                            ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
+                                if (hasFocus) playerConnection.service.refreshActiveDevice()
+                            }
+                        view.viewTreeObserver.addOnWindowFocusChangeListener(listener)
+                        onDispose { view.viewTreeObserver.removeOnWindowFocusChangeListener(listener) }
+                    }
+
+                    QueueCollapsedContentV8(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,
                         textBackgroundColor = TextBackgroundColor,
@@ -933,8 +960,7 @@ fun Queue(
                             ).asPaddingValues(),
                     modifier =
                         Modifier
-                            .weight(1f)
-                            .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                            .weight(1f),
                 ) {
                     item(
                         key = "queue_selection_spacer",
