@@ -358,9 +358,9 @@ dependencies {
     implementation(libs.shimmer)
 
     // Glance Widget support
-    implementation("androidx.glance:glance:1.1.1")
-    implementation("androidx.glance:glance-appwidget:1.1.1")
-    implementation("androidx.glance:glance-material3:1.1.1")
+    implementation("androidx.glance:glance:1.2.0")
+    implementation("androidx.glance:glance-appwidget:1.2.0")
+    implementation("androidx.glance:glance-material3:1.2.0")
 
     implementation(libs.media3)
     implementation("androidx.media3:media3-exoplayer-hls:${libs.versions.media3.get()}")
@@ -372,7 +372,6 @@ dependencies {
     add("gmsImplementation", libs.media3.cast)
     add("gmsImplementation", libs.mediarouter)
     add("gmsImplementation", "com.google.android.gms:play-services-auth:22.0.0")
-    implementation(libs.squigglyslider)
 
 
     implementation(libs.room.runtime)
@@ -401,7 +400,7 @@ dependencies {
     implementation(project(":shazamkit"))
     implementation(project(":spotifycore"))
     implementation(project(":morideobfuscator"))
-    implementation("com.materialkolor:material-kolor:5.0.0-alpha07")
+    implementation("com.materialkolor:material-kolor:5.0.1")
 
     implementation(libs.webkit)
     implementation(libs.ktor.client.core)
@@ -420,7 +419,7 @@ dependencies {
     testImplementation(libs.turbine)
     implementation(libs.translator)
     implementation("androidx.lifecycle:lifecycle-process:2.11.0")
-    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-rc01")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.4.0-alpha03")
     implementation(libs.accompanist.lyrics.ui)
     implementation(libs.accompanist.lyrics.core)
 }
